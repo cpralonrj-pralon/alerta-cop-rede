@@ -53,6 +53,9 @@
       border-left: 5px solid #28a745;
       transition: all 0.2s;
     }
+    .card-alerta.bloqueado-tempo {
+      border-left: 5px solid #ffc107;
+    }
     .card-alerta.inativo {
       border-left: 5px solid #6c757d;
       opacity: 0.8;
@@ -66,7 +69,7 @@
   <header class="top-header d-flex justify-content-between align-items-center">
     <div class="d-flex align-items-center gap-3">
       <h4 class="mb-0 fw-bold"><i class="fa-solid fa-tower-broadcast me-2"></i>PORTAL COP REDE</h4>
-      <span class="badge-sub d-none d-md-inline">CENTRAL DE GESTÃO DE REPORTES</span>
+      <span class="badge-sub d-none d-md-inline">CENTRAL DE REPORTES (REGRA ESTRITA 2H)</span>
     </div>
     <div>
       <span id="badgeConexao" class="badge bg-secondary py-2 px-3">Conectando Supabase...</span>
@@ -83,7 +86,7 @@
             <i class="fa-solid fa-plus-circle text-danger me-2"></i>Ativar Novo Alerta
           </h5>
           <p class="text-muted small">
-            Selecione o grupo e os filtros. O alerta será registrado no banco e a máquina local enviará o reporte no WhatsApp agora e a cada 2 horas.
+            Selecione o grupo e filtros. <strong>Regra:</strong> o alerta faz o 1º disparo e depois <strong>apenas de 2 em 2 horas exatas</strong>.
           </p>
 
           <form id="formNovoAlerta">
@@ -160,7 +163,7 @@
               <h5 class="fw-bold text-dark mb-0">
                 <i class="fa-solid fa-list-check text-danger me-2"></i>Alertas Ativos & Desligamento
               </h5>
-              <small class="text-muted">Desligue ou reative qualquer alerta individualmente a qualquer momento.</small>
+              <small class="text-muted">Controle individual de cada grupo com trava estrita de 2 horas.</small>
             </div>
             <button class="btn btn-outline-secondary btn-sm" onclick="carregarAlertas()">
               <i class="fa-solid fa-rotate me-1"></i>Atualizar
@@ -171,7 +174,7 @@
           <div id="listaAlertas" class="d-flex flex-column gap-3 mb-4">
             <div class="text-center py-4 text-muted">
               <div class="spinner-border spinner-border-sm text-danger me-2" role="status"></div>
-              Carregando alertas do Supabase...
+              Carregando alertas...
             </div>
           </div>
 
@@ -230,12 +233,7 @@
       const container = document.getElementById('listaAlertas');
 
       if (error) {
-        container.innerHTML = `
-          <div class="alert alert-warning small mb-0">
-            <strong>Atenção:</strong> A tabela de múltiplos alertas ainda precisa ser criada.<br>
-            Execute o script <code>supabase_schema_multi_alertas.sql</code> no seu Supabase.
-          </div>
-        `;
+        container.innerHTML = `<div class="alert alert-warning small">Erro ao carregar alertas: ${error.message}</div>`;
         return;
       }
 
@@ -244,21 +242,48 @@
           <div class="text-center py-4 text-muted bg-light rounded-3">
             <i class="fa-solid fa-bell-slash fa-2x mb-2 opacity-50"></i>
             <p class="mb-0">Nenhum alerta cadastrado no momento.</p>
-            <small>Crie um alerta no formulário ao lado para iniciar os envios.</small>
+            <small>Crie um alerta no formulário ao lado.</small>
           </div>
         `;
         return;
       }
 
       container.innerHTML = '';
+      const agora = new Date();
+
       data.forEach(item => {
         const isAtivo = item.ativo;
         const card = document.createElement('div');
-        card.className = `card card-custom card-alerta p-3 ${isAtivo ? '' : 'inativo'}`;
+        
+        // Cálculo da regra de 2 horas (120 minutos)
+        let minutosRestantes = 0;
+        let proximoEnvioStr = '--:--';
 
-        let statusBadge = isAtivo 
-          ? `<span class="badge bg-success"><i class="fa-solid fa-circle-play me-1"></i>ATIVO (a cada 2h)</span>`
-          : `<span class="badge bg-secondary"><i class="fa-solid fa-circle-stop me-1"></i>DESLIGADO</span>`;
+        if (item.ultimo_disparo) {
+          const ultimoDt = new Date(item.ultimo_disparo);
+          const diffMs = agora - ultimoDt;
+          const diffMin = Math.floor(diffMs / 60000);
+          minutosRestantes = Math.max(0, 120 - diffMin);
+
+          const proxDt = new Date(ultimoDt.getTime() + 120 * 60000);
+          proximoEnvioStr = proxDt.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+        }
+
+        const bloqueadoPorTempo = minutosRestantes > 0;
+        let cardClass = 'card card-custom card-alerta p-3';
+        if (!isAtivo) cardClass += ' inativo';
+        else if (bloqueadoPorTempo) cardClass += ' bloqueado-tempo';
+
+        card.className = cardClass;
+
+        let statusBadge = '';
+        if (!isAtivo) {
+          statusBadge = `<span class="badge bg-secondary"><i class="fa-solid fa-circle-stop me-1"></i>DESLIGADO</span>`;
+        } else if (bloqueadoPorTempo) {
+          statusBadge = `<span class="badge bg-warning text-dark"><i class="fa-solid fa-hourglass-half me-1"></i>Bloqueado 2h (${minutosRestantes} min restantes)</span>`;
+        } else {
+          statusBadge = `<span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i>ATIVO (Pronto para envio)</span>`;
+        }
 
         let botaoToggle = isAtivo
           ? `<button class="btn btn-outline-danger btn-sm" onclick="alternarStatusAlerta('${item.id}', false)">
@@ -281,11 +306,12 @@
           <div class="small text-muted mb-3">
             <div><strong>Status:</strong> ${item.status_execucao || 'Aguardando'}</div>
             <div><strong>Último envio:</strong> ${ultimoStr}</div>
+            <div><strong>Próximo envio permitido:</strong> <span class="fw-semibold text-dark">${proximoEnvioStr}</span></div>
           </div>
           <div class="d-flex justify-content-between align-items-center">
             <div class="d-flex gap-2">
               ${botaoToggle}
-              <button class="btn btn-outline-primary btn-sm" onclick="dispararAlertaAgora('${item.id}')">
+              <button class="btn btn-outline-primary btn-sm" onclick="tentarDispararAlerta('${item.id}', ${minutosRestantes}, '${ultimoStr}')" ${!isAtivo ? 'disabled' : ''}>
                 <i class="fa-solid fa-bolt me-1"></i>Disparar Já
               </button>
             </div>
@@ -315,7 +341,7 @@
             <tr>
               <td>${dt}</td>
               <td><strong>${h.grupo}</strong></td>
-              <td><span class="badge ${h.status === 'Sucesso' ? 'bg-success' : 'bg-warning text-dark'}">${h.status}</span></td>
+              <td><span class="badge ${h.status === 'Sucesso' ? 'bg-success' : 'bg-danger'}">${h.status}</span></td>
             </tr>
           `;
         });
@@ -326,7 +352,7 @@
       if (!supabaseClient) return;
       supabaseClient
         .channel('public:alertas_agendados')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'alertas_agendados' }, payload => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'alertas_agendados' }, () => {
           carregarAlertas();
           carregarHistorico();
         })
@@ -355,14 +381,14 @@
           intervalo_horas: 2,
           ativo: true,
           solicitar_disparo_imediato: true,
-          status_execucao: 'Criado pelo usuário (aguardando envio imediato)'
+          status_execucao: 'Novo alerta criado (primeiro envio iniciando)'
         }]);
 
       btn.disabled = false;
       btn.innerHTML = '<i class="fa-solid fa-paper-plane me-2"></i>Criar e Ativar Alerta (Ciclo 2h)';
 
       if (!error) {
-        alert(`Alerta para '${grupo}' criado com sucesso!\nA máquina local iniciará o disparo e repetirá a cada 2h.`);
+        alert(`Alerta '${grupo}' criado!\nO primeiro envio ocorrerá agora e os próximos seguirão estritamente a cada 2 horas.`);
         carregarAlertas();
       } else {
         alert('Erro ao criar alerta: ' + error.message);
@@ -376,8 +402,7 @@
         .from('alertas_agendados')
         .update({
           ativo: novoStatus,
-          solicitar_disparo_imediato: novoStatus, // se reativar, dispara na hora
-          status_execucao: novoStatus ? 'Reativado (aguardando envio)' : 'Desligado pelo usuário'
+          status_execucao: novoStatus ? 'Reativado (aguardando janela de 2h)' : 'Desligado pelo usuário'
         })
         .eq('id', id);
 
@@ -388,20 +413,27 @@
       }
     }
 
-    // Disparar Alerta Agora
-    async function dispararAlertaAgora(id) {
+    // Tentar Disparar Alerta (COM TRAVA DE 2 HORAS)
+    async function tentarDispararAlerta(id, minutosRestantes, ultimoStr) {
+      if (minutosRestantes > 0) {
+        alert(`⛔ BLOQUEIO OPERACIONAL DE 2 HORAS:\n\nEste alerta já foi enviado (${ultimoStr}).\nConforme a regra operacional, ele só pode ser enviado novamente após 2 horas completas.\n\nTempo restante para o próximo disparo: ${minutosRestantes} minutos.`);
+        return;
+      }
+
       if (!supabaseClient) return;
+      if (!confirm('O intervalo de 2 horas já foi cumprido. Deseja realizar o envio agora?')) return;
+
       const { error } = await supabaseClient
         .from('alertas_agendados')
         .update({
           ativo: true,
           solicitar_disparo_imediato: true,
-          status_execucao: 'Solicitado disparo imediato...'
+          status_execucao: 'Solicitado disparo pela janela de 2h...'
         })
         .eq('id', id);
 
       if (!error) {
-        alert('Ordem de disparo imediato enviada!');
+        alert('Ordem de disparo enviada com sucesso!');
         carregarAlertas();
       } else {
         alert('Erro: ' + error.message);
@@ -410,7 +442,7 @@
 
     // Excluir Alerta
     async function excluirAlerta(id) {
-      if (!confirm('Deseja realmente remover este alerta do banco?')) return;
+      if (!confirm('Deseja realmente excluir este alerta do sistema?')) return;
       if (!supabaseClient) return;
       const { error } = await supabaseClient
         .from('alertas_agendados')
