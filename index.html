@@ -92,12 +92,12 @@
             <div class="card border-0 bg-light p-3 mb-4 rounded-3 text-center">
               <label class="form-label fw-bold mb-2">STATUS DA AUTOMAÇÃO NO BANCO</label>
               <div class="btn-group w-100" role="group">
-                <input type="radio" class="btn-check" name="status_radio" id="radioSim" autocomplete="off" value="SIM" onchange="alterarStatusAutomatico(true)">
+                <input type="radio" class="btn-check" name="status_radio" id="radioSim" autocomplete="off" value="SIM" onchange="alterarStatusRadio(true)">
                 <label class="btn btn-outline-success py-3 fw-bold" for="radioSim">
                   <i class="fa-solid fa-play me-2"></i>ATIVAR AUTOMAÇÃO (SIM)
                 </label>
 
-                <input type="radio" class="btn-check" name="status_radio" id="radioNao" autocomplete="off" value="NAO" checked onchange="alterarStatusAutomatico(false)">
+                <input type="radio" class="btn-check" name="status_radio" id="radioNao" autocomplete="off" value="NAO" checked onchange="alterarStatusRadio(false)">
                 <label class="btn btn-outline-danger py-3 fw-bold" for="radioNao">
                   <i class="fa-solid fa-stop me-2"></i>DESATIVAR (NÃO)
                 </label>
@@ -120,7 +120,7 @@
                   <option value="GRUPO NORDESTE">GRUPO NORDESTE</option>
                   <option value="GRUPO NORTE">GRUPO NORTE</option>
                   <option value="GRUPO PR">GRUPO PR</option>
-                  <option value="GRUPO RIO E ES" selected>GRUPO RIO E ES</option>
+                  <option value="GRUPO RIO E ES">GRUPO RIO E ES</option>
                   <option value="GRUPO SP CAPITAL">GRUPO SP CAPITAL</option>
                   <option value="GRUPO SP INTERIOR">GRUPO SP INTERIOR</option>
                   <option value="GRUPO SUL">GRUPO SUL</option>
@@ -173,14 +173,9 @@
 
             <!-- Botões de Ação -->
             <div class="row g-2 mb-4">
-              <div class="col-8">
+              <div class="col-12">
                 <button type="submit" class="btn btn-claro w-100 shadow-sm" id="btnSalvar">
-                  <i class="fa-solid fa-floppy-disk me-2"></i>Salvar Filtros e Status
-                </button>
-              </div>
-              <div class="col-4">
-                <button type="button" class="btn btn-outline-danger w-100 fw-semibold" id="btnDispararAgora" onclick="forcarDisparoAgora()">
-                  <i class="fa-solid fa-bolt me-1"></i>Reporte Já
+                  <i class="fa-solid fa-paper-plane me-2"></i>Salvar Filtros e Disparar Agora (Repete a cada 2h)
                 </button>
               </div>
             </div>
@@ -285,8 +280,8 @@
         .subscribe();
     }
 
-    // Salva imediatamente no banco ao clicar nos botões SIM / NÃO
-    async function alterarStatusAutomatico(novoStatus) {
+    // Clique direto nos rádios SIM / NÃO
+    async function alterarStatusRadio(novoStatus) {
       if (!supabaseClient) return;
       const grupo = document.getElementById('grupo').value;
       const cidade = document.getElementById('cidade').value;
@@ -294,64 +289,35 @@
 
       document.getElementById('msgStatusAux').innerText = 'Gravando no banco...';
 
-      const { error } = await supabaseClient
+      const payload = {
+        ativo: novoStatus,
+        grupo: grupo,
+        cidade: cidade,
+        hora_report: hora,
+        status_execucao: novoStatus ? 'Ativado pelo usuário (aguardando robô local)' : 'Desativado pelo usuário',
+        updated_at: new Date().toISOString()
+      };
+
+      if (novoStatus === true) {
+        payload.disparar_agora = true; // Ao ativar SIM, já ordena o primeiro disparo na hora!
+      }
+
+      await supabaseClient
         .from('automacao_config')
-        .update({
-          ativo: novoStatus,
-          grupo: grupo,
-          cidade: cidade,
-          hora_report: hora,
-          status_execucao: novoStatus ? 'Ativado pelo usuário (aguardando robô local)' : 'Desativado pelo usuário',
-          updated_at: new Date().toISOString()
-        })
+        .update(payload)
         .eq('id', 1);
 
-      if (!error) {
-        carregarConfiguracoes();
-      }
+      carregarConfiguracoes();
     }
 
-    // Formulário manual para alterar filtros e status
+    // Submissão do formulário principal: SALVA, ATIVA e DISPARA AGORA
     document.getElementById('formControle').addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!supabaseClient) return;
 
       const btn = document.getElementById('btnSalvar');
       btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
-
-      const isAtivo = document.getElementById('radioSim').checked;
-      const grupo = document.getElementById('grupo').value;
-      const cidade = document.getElementById('cidade').value;
-      const hora_report = document.getElementById('hora_report').value;
-
-      const { error } = await supabaseClient
-        .from('automacao_config')
-        .update({
-          ativo: isAtivo,
-          grupo: grupo,
-          cidade: cidade,
-          hora_report: hora_report,
-          status_execucao: isAtivo ? 'Ativado pelo usuário (aguardando robô local)' : 'Desativado pelo usuário',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', 1);
-
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i>Salvar Filtros e Status';
-
-      if (!error) {
-        alert('Configurações atualizadas no Supabase com sucesso!');
-        carregarConfiguracoes();
-      } else {
-        alert('Erro ao gravar: ' + error.message);
-      }
-    });
-
-    // Botão "Reporte Já": agora garante que o robô DISPARE e FIQUE ATIVO (SIM)
-    async function forcarDisparoAgora() {
-      if (!supabaseClient) return;
-      if (!confirm('Deseja acionar um reporte imediato e manter a automação ATIVA a cada 2h?')) return;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando ordem para a máquina local...';
 
       const grupo = document.getElementById('grupo').value;
       const cidade = document.getElementById('cidade').value;
@@ -362,23 +328,26 @@
       const { error } = await supabaseClient
         .from('automacao_config')
         .update({
-          ativo: true, // Mantém ativo para os próximos ciclos de 2h!
-          disparar_agora: true,
+          ativo: true,
+          disparar_agora: true, // Força execução imediata na máquina local!
           grupo: grupo,
           cidade: cidade,
           hora_report: hora_report,
-          status_execucao: 'Solicitado disparo imediato...',
+          status_execucao: 'Ordem de disparo imediato enviada para a máquina local...',
           updated_at: new Date().toISOString()
         })
         .eq('id', 1);
 
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-paper-plane me-2"></i>Salvar Filtros e Disparar Agora (Repete a cada 2h)';
+
       if (!error) {
-        alert('Ordem de disparo imediato enviada e automação ATIVADA para repetição a cada 2h!');
+        alert('Ordem de envio transmitida com sucesso!\nA máquina local iniciará o disparo agora com o grupo ' + grupo + ' e continuará a cada 2h.');
         carregarConfiguracoes();
       } else {
-        alert('Erro ao solicitar disparo: ' + error.message);
+        alert('Erro ao gravar: ' + error.message);
       }
-    }
+    });
 
     inicializarSupabase();
   </script>
