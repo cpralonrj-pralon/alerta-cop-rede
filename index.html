@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controle de Automação - Alerta COP REDE</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --claro-red: #DA291C;
+      --claro-dark: #1F2421;
+      --claro-gray: #f4f6f9;
+      --wpp-green: #25D366;
+    }
+    body {
+      background-color: var(--claro-gray);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    .top-header {
+      background: linear-gradient(90deg, #DA291C 0%, #a01a10 100%);
+      color: #fff;
+      padding: 16px 24px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    }
+    .badge-sub {
+      background: rgba(255,255,255,0.2);
+      font-size: 0.8rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+    .card-custom {
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+      background: #ffffff;
+    }
+    .btn-claro {
+      background-color: var(--claro-red);
+      color: #ffffff;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      padding: 14px 20px;
+      font-size: 1.05rem;
+      transition: all 0.3s;
+    }
+    .btn-claro:hover {
+      background-color: #b51c11;
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+    .status-card {
+      background: #fafbfc;
+      border: 1px solid #e1e7ed;
+      border-radius: 10px;
+      padding: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Topbar -->
+  <header class="top-header d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-3">
+      <h4 class="mb-0 fw-bold"><i class="fa-solid fa-tower-broadcast me-2"></i>PORTAL COP REDE</h4>
+      <span class="badge-sub d-none d-md-inline">CONTROLE REMOTO DE REPORTES</span>
+    </div>
+    <div>
+      <span id="badgeConexao" class="badge bg-secondary py-2 px-3">Conectando Supabase...</span>
+    </div>
+  </header>
+
+  <div class="container my-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-7">
+
+        <!-- Painel Principal de Controle -->
+        <div class="card card-custom p-4">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+              <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-sliders text-danger me-2"></i>Ativação da Automação</h5>
+              <small class="text-muted">A rotina local enviará o reporte a cada 2 horas no WhatsApp quando ativada.</small>
+            </div>
+            <span class="badge bg-light text-dark border"><i class="fa-brands fa-whatsapp text-success me-1"></i> Evolution API</span>
+          </div>
+
+          <form id="formControle">
+
+            <!-- Chave Principal: ATIVAR AUTOMAÇÃO (SIM / NÃO) -->
+            <div class="card border-0 bg-light p-3 mb-4 rounded-3 text-center">
+              <label class="form-label fw-bold mb-2">STATUS DA AUTOMAÇÃO</label>
+              <div class="btn-group w-100" role="group">
+                <input type="radio" class="btn-check" name="status_radio" id="radioSim" autocomplete="off" value="SIM">
+                <label class="btn btn-outline-success py-3 fw-bold" for="radioSim">
+                  <i class="fa-solid fa-play me-2"></i>ATIVAR AUTOMAÇÃO (SIM)
+                </label>
+
+                <input type="radio" class="btn-check" name="status_radio" id="radioNao" autocomplete="off" value="NAO" checked>
+                <label class="btn btn-outline-danger py-3 fw-bold" for="radioNao">
+                  <i class="fa-solid fa-stop me-2"></i>DESATIVAR (NÃO)
+                </label>
+              </div>
+              <small class="text-muted mt-2 d-block">
+                Quando <strong>SIM</strong>, a máquina local enviará o reporte agora e repetirá a cada <strong>2 horas</strong>.
+              </small>
+            </div>
+
+            <!-- Filtro Grupo -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Grupo</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-users"></i></span>
+                <select class="form-select" id="grupo" name="grupo">
+                  <option value="(TODOS)" selected>(TODOS)</option>
+                  <option value="GRUPO BAHIA/SERGIPE">GRUPO BAHIA/SERGIPE</option>
+                  <option value="GRUPO CENTRO-OESTE">GRUPO CENTRO-OESTE</option>
+                  <option value="GRUPO MINAS GERAIS">GRUPO MINAS GERAIS</option>
+                  <option value="GRUPO NORDESTE">GRUPO NORDESTE</option>
+                  <option value="GRUPO NORTE">GRUPO NORTE</option>
+                  <option value="GRUPO PR">GRUPO PR</option>
+                  <option value="GRUPO RIO E ES">GRUPO RIO E ES</option>
+                  <option value="GRUPO SP CAPITAL">GRUPO SP CAPITAL</option>
+                  <option value="GRUPO SP INTERIOR">GRUPO SP INTERIOR</option>
+                  <option value="GRUPO SUL">GRUPO SUL</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Filtro Cidade -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Cidade</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-city"></i></span>
+                <input type="text" class="form-control" id="cidade" name="cidade" placeholder="Ex: (TODAS), Belo Horizonte..." value="(TODAS)">
+              </div>
+            </div>
+
+            <!-- Hora Report -->
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Hora Report</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-regular fa-clock"></i></span>
+                <select class="form-select" id="hora_report" name="hora_report">
+                  <option value="09h" selected>09h</option>
+                  <option value="10h">10h</option>
+                  <option value="11h">11h</option>
+                  <option value="12h">12h</option>
+                  <option value="13h">13h</option>
+                  <option value="14h">14h</option>
+                  <option value="15h">15h</option>
+                  <option value="16h">16h</option>
+                  <option value="17h">17h</option>
+                  <option value="18h">18h</option>
+                  <option value="19h">19h</option>
+                  <option value="20h">20h</option>
+                  <option value="21h">21h</option>
+                  <option value="22h">22h</option>
+                  <option value="23h">23h</option>
+                  <option value="00h">00h</option>
+                  <option value="01h">01h</option>
+                  <option value="02h">02h</option>
+                  <option value="03h">03h</option>
+                  <option value="04h">04h</option>
+                  <option value="05h">05h</option>
+                  <option value="06h">06h</option>
+                  <option value="07h">07h</option>
+                  <option value="08h">08h</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="row g-2 mb-4">
+              <div class="col-8">
+                <button type="submit" class="btn btn-claro w-100 shadow-sm" id="btnSalvar">
+                  <i class="fa-solid fa-floppy-disk me-2"></i>Salvar e Atualizar Status
+                </button>
+              </div>
+              <div class="col-4">
+                <button type="button" class="btn btn-outline-danger w-100 fw-semibold" id="btnDispararAgora" onclick="forcarDisparoAgora()">
+                  <i class="fa-solid fa-bolt me-1"></i>Reporte Já
+                </button>
+              </div>
+            </div>
+
+          </form>
+
+          <!-- Monitor de Execução Local em Tempo Real -->
+          <div class="status-card">
+            <h6 class="fw-bold text-dark mb-2">
+              <i class="fa-solid fa-circle-nodes text-danger me-2"></i>Status da Execução Local
+            </h6>
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="small text-muted">Status do Robô:</span>
+              <span id="txtRoboStatus" class="small fw-bold text-dark">Aguardando dados...</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="small text-muted">Último Disparo Realizado:</span>
+              <span id="txtUltimoDisparo" class="small font-monospace">--/--/---- --:--</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="small text-muted">Próximo Disparo Programado:</span>
+              <span id="txtProximoDisparo" class="small font-monospace text-success">--:--</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Credenciais do Supabase pré-configuradas do seu projeto
+    const SB_URL = 'https://aulhjiywxbcbpiiqhpsc.supabase.co';
+    const SB_KEY = 'sb_publishable_GZOK7AGvseEYjFxET_KxiQ_r1solkcw';
+    let supabaseClient = null;
+
+    function inicializarSupabase() {
+      try {
+        supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+        document.getElementById('badgeConexao').className = 'badge bg-success py-2 px-3';
+        document.getElementById('badgeConexao').innerHTML = '<i class="fa-solid fa-cloud me-1"></i> Supabase Conectado';
+        carregarConfiguracoes();
+        escutarMudancas();
+      } catch (e) {
+        document.getElementById('badgeConexao').className = 'badge bg-danger py-2 px-3';
+        document.getElementById('badgeConexao').innerText = 'Erro ao conectar';
+      }
+    }
+
+    async function carregarConfiguracoes() {
+      if (!supabaseClient) return;
+      try {
+        const { data, error } = await supabaseClient
+          .from('automacao_config')
+          .select('*')
+          .eq('id', 1)
+          .maybeSingle();
+
+        if (error) {
+          console.warn('Tabela ainda não criada ou erro:', error.message);
+          document.getElementById('txtRoboStatus').innerText = 'Aguardando criação da tabela no Supabase...';
+          return;
+        }
+
+        if (data) {
+          if (data.ativo) {
+            document.getElementById('radioSim').checked = true;
+          } else {
+            document.getElementById('radioNao').checked = true;
+          }
+          if (data.grupo) document.getElementById('grupo').value = data.grupo;
+          if (data.cidade) document.getElementById('cidade').value = data.cidade;
+          if (data.hora_report) document.getElementById('hora_report').value = data.hora_report;
+
+          document.getElementById('txtRoboStatus').innerText = data.status_execucao || 'Pronto';
+          if (data.ultimo_disparo) {
+            const dt = new Date(data.ultimo_disparo);
+            document.getElementById('txtUltimoDisparo').innerText = dt.toLocaleString('pt-BR');
+            
+            if (data.ativo) {
+              const prox = new Date(dt.getTime() + 2 * 60 * 60 * 1000);
+              document.getElementById('txtProximoDisparo').innerText = prox.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+            } else {
+              document.getElementById('txtProximoDisparo').innerText = 'Automação Pausada (NÃO)';
+            }
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function escutarMudancas() {
+      if (!supabaseClient) return;
+      supabaseClient
+        .channel('public:automacao_config')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'automacao_config' }, payload => {
+          carregarConfiguracoes();
+        })
+        .subscribe();
+    }
+
+    document.getElementById('formControle').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!supabaseClient) return;
+
+      const btn = document.getElementById('btnSalvar');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Gravando no Supabase...';
+
+      const isAtivo = document.getElementById('radioSim').checked;
+      const grupo = document.getElementById('grupo').value;
+      const cidade = document.getElementById('cidade').value;
+      const hora_report = document.getElementById('hora_report').value;
+
+      const { error } = await supabaseClient
+        .from('automacao_config')
+        .upsert({
+          id: 1,
+          ativo: isAtivo,
+          grupo: grupo,
+          cidade: cidade,
+          hora_report: hora_report,
+          status_execucao: isAtivo ? 'Ativado pelo usuário (aguardando robô local)' : 'Desativado pelo usuário',
+          updated_at: new Date().toISOString()
+        });
+
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i>Salvar e Atualizar Status';
+
+      if (!error) {
+        alert('Configurações gravadas com sucesso no Supabase!\nA máquina local detectará a alteração.');
+        carregarConfiguracoes();
+      } else {
+        alert('Erro ao gravar: ' + error.message + '\n\nCertifique-se de executar o script SQL no Supabase para criar a tabela.');
+      }
+    });
+
+    async function forcarDisparoAgora() {
+      if (!supabaseClient) return;
+      if (!confirm('Deseja acionar um reporte imediato na máquina local?')) return;
+
+      const { error } = await supabaseClient
+        .from('automacao_config')
+        .update({
+          disparar_agora: true,
+          status_execucao: 'Solicitado disparo imediato...',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', 1);
+
+      if (!error) {
+        alert('Ordem de disparo imediato enviada para a máquina local!');
+      } else {
+        alert('Erro ao solicitar disparo: ' + error.message);
+      }
+    }
+
+    // Inicialização automática
+    inicializarSupabase();
+  </script>
+</body>
+</html>
