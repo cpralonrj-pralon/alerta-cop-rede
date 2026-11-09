@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Controle de Automação - Alerta COP REDE</title>
+  <title>Gestão de Alertas - Alerta COP REDE</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -42,20 +42,21 @@
       font-weight: 600;
       border: none;
       border-radius: 8px;
-      padding: 14px 20px;
-      font-size: 1.05rem;
+      padding: 12px 20px;
       transition: all 0.3s;
     }
     .btn-claro:hover {
       background-color: #b51c11;
       color: #ffffff;
-      transform: translateY(-1px);
     }
-    .status-card {
-      background: #fafbfc;
-      border: 1px solid #e1e7ed;
-      border-radius: 10px;
-      padding: 16px;
+    .card-alerta {
+      border-left: 5px solid #28a745;
+      transition: all 0.2s;
+    }
+    .card-alerta.inativo {
+      border-left: 5px solid #6c757d;
+      opacity: 0.8;
+      background: #f8f9fa;
     }
   </style>
 </head>
@@ -65,7 +66,7 @@
   <header class="top-header d-flex justify-content-between align-items-center">
     <div class="d-flex align-items-center gap-3">
       <h4 class="mb-0 fw-bold"><i class="fa-solid fa-tower-broadcast me-2"></i>PORTAL COP REDE</h4>
-      <span class="badge-sub d-none d-md-inline">CONTROLE REMOTO DE REPORTES</span>
+      <span class="badge-sub d-none d-md-inline">CENTRAL DE GESTÃO DE REPORTES</span>
     </div>
     <div>
       <span id="badgeConexao" class="badge bg-secondary py-2 px-3">Conectando Supabase...</span>
@@ -73,67 +74,47 @@
   </header>
 
   <div class="container my-5">
-    <div class="row justify-content-center">
-      <div class="col-lg-7">
-
-        <!-- Painel Principal de Controle -->
+    <div class="row g-4">
+      
+      <!-- Coluna Esquerda: Cadastrar Novo Alerta -->
+      <div class="col-lg-5">
         <div class="card card-custom p-4">
-          <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-              <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-sliders text-danger me-2"></i>Ativação da Automação</h5>
-              <small class="text-muted">A rotina local enviará o reporte a cada 2 horas no WhatsApp quando ativada.</small>
-            </div>
-            <span class="badge bg-light text-dark border"><i class="fa-brands fa-whatsapp text-success me-1"></i> Evolution API</span>
-          </div>
+          <h5 class="fw-bold text-dark mb-3">
+            <i class="fa-solid fa-plus-circle text-danger me-2"></i>Ativar Novo Alerta
+          </h5>
+          <p class="text-muted small">
+            Selecione o grupo e os filtros. O alerta será registrado no banco e a máquina local enviará o reporte no WhatsApp agora e a cada 2 horas.
+          </p>
 
-          <form id="formControle">
-
-            <!-- Chave Principal: ATIVAR AUTOMAÇÃO (SIM / NÃO) -->
-            <div class="card border-0 bg-light p-3 mb-4 rounded-3 text-center">
-              <label class="form-label fw-bold mb-2">STATUS DA AUTOMAÇÃO NO BANCO</label>
-              <div class="btn-group w-100" role="group">
-                <input type="radio" class="btn-check" name="status_radio" id="radioSim" autocomplete="off" value="SIM" onchange="alterarStatusRadio(true)">
-                <label class="btn btn-outline-success py-3 fw-bold" for="radioSim">
-                  <i class="fa-solid fa-play me-2"></i>ATIVAR AUTOMAÇÃO (SIM)
-                </label>
-
-                <input type="radio" class="btn-check" name="status_radio" id="radioNao" autocomplete="off" value="NAO" checked onchange="alterarStatusRadio(false)">
-                <label class="btn btn-outline-danger py-3 fw-bold" for="radioNao">
-                  <i class="fa-solid fa-stop me-2"></i>DESATIVAR (NÃO)
-                </label>
-              </div>
-              <small class="text-muted mt-2 d-block" id="msgStatusAux">
-                Clique em <strong>ATIVAR (SIM)</strong> para manter o envio a cada <strong>2 horas</strong>.
-              </small>
-            </div>
-
-            <!-- Filtro Grupo -->
+          <form id="formNovoAlerta">
+            
+            <!-- Grupo -->
             <div class="mb-3">
               <label class="form-label fw-semibold">Grupo</label>
               <div class="input-group">
                 <span class="input-group-text"><i class="fa-solid fa-users"></i></span>
-                <select class="form-select" id="grupo" name="grupo">
-                  <option value="(TODOS)">(TODOS)</option>
+                <select class="form-select" id="grupo" name="grupo" required>
+                  <option value="GRUPO RIO E ES" selected>GRUPO RIO E ES</option>
+                  <option value="GRUPO MINAS GERAIS">GRUPO MINAS GERAIS</option>
+                  <option value="GRUPO SP CAPITAL">GRUPO SP CAPITAL</option>
+                  <option value="GRUPO SP INTERIOR">GRUPO SP INTERIOR</option>
                   <option value="GRUPO BAHIA/SERGIPE">GRUPO BAHIA/SERGIPE</option>
                   <option value="GRUPO CENTRO-OESTE">GRUPO CENTRO-OESTE</option>
-                  <option value="GRUPO MINAS GERAIS">GRUPO MINAS GERAIS</option>
                   <option value="GRUPO NORDESTE">GRUPO NORDESTE</option>
                   <option value="GRUPO NORTE">GRUPO NORTE</option>
                   <option value="GRUPO PR">GRUPO PR</option>
-                  <option value="GRUPO RIO E ES">GRUPO RIO E ES</option>
-                  <option value="GRUPO SP CAPITAL">GRUPO SP CAPITAL</option>
-                  <option value="GRUPO SP INTERIOR">GRUPO SP INTERIOR</option>
                   <option value="GRUPO SUL">GRUPO SUL</option>
+                  <option value="(TODOS)">(TODOS)</option>
                 </select>
               </div>
             </div>
 
-            <!-- Filtro Cidade -->
+            <!-- Cidade -->
             <div class="mb-3">
               <label class="form-label fw-semibold">Cidade</label>
               <div class="input-group">
                 <span class="input-group-text"><i class="fa-solid fa-city"></i></span>
-                <input type="text" class="form-control" id="cidade" name="cidade" placeholder="Ex: (TODAS), Belo Horizonte..." value="(TODAS)">
+                <input type="text" class="form-control" id="cidade" name="cidade" value="(TODAS)">
               </div>
             </div>
 
@@ -159,51 +140,64 @@
                   <option value="22h">22h</option>
                   <option value="23h">23h</option>
                   <option value="00h">00h</option>
-                  <option value="01h">01h</option>
-                  <option value="02h">02h</option>
-                  <option value="03h">03h</option>
-                  <option value="04h">04h</option>
-                  <option value="05h">05h</option>
-                  <option value="06h">06h</option>
-                  <option value="07h">07h</option>
-                  <option value="08h">08h</option>
                 </select>
               </div>
             </div>
 
-            <!-- Botões de Ação -->
-            <div class="row g-2 mb-4">
-              <div class="col-12">
-                <button type="submit" class="btn btn-claro w-100 shadow-sm" id="btnSalvar">
-                  <i class="fa-solid fa-paper-plane me-2"></i>Salvar Filtros e Disparar Agora (Repete a cada 2h)
-                </button>
-              </div>
-            </div>
-
+            <button type="submit" class="btn btn-claro w-100 shadow-sm" id="btnCriarAlerta">
+              <i class="fa-solid fa-paper-plane me-2"></i>Criar e Ativar Alerta (Ciclo 2h)
+            </button>
           </form>
 
-          <!-- Monitor de Execução Local em Tempo Real -->
-          <div class="status-card">
-            <h6 class="fw-bold text-dark mb-2">
-              <i class="fa-solid fa-circle-nodes text-danger me-2"></i>Status da Execução Local
-            </h6>
-            <div class="d-flex justify-content-between align-items-center mb-1">
-              <span class="small text-muted">Status do Robô:</span>
-              <span id="txtRoboStatus" class="small fw-bold text-dark">Aguardando dados...</span>
+        </div>
+      </div>
+
+      <!-- Coluna Direita: Alertas Cadastrados & Desligamento -->
+      <div class="col-lg-7">
+        <div class="card card-custom p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h5 class="fw-bold text-dark mb-0">
+                <i class="fa-solid fa-list-check text-danger me-2"></i>Alertas Ativos & Desligamento
+              </h5>
+              <small class="text-muted">Desligue ou reative qualquer alerta individualmente a qualquer momento.</small>
             </div>
-            <div class="d-flex justify-content-between align-items-center mb-1">
-              <span class="small text-muted">Último Disparo Realizado:</span>
-              <span id="txtUltimoDisparo" class="small font-monospace">--/--/---- --:--</span>
-            </div>
-            <div class="d-flex justify-content-between align-items-center">
-              <span class="small text-muted">Próximo Disparo Programado:</span>
-              <span id="txtProximoDisparo" class="small font-monospace text-success">--:--</span>
+            <button class="btn btn-outline-secondary btn-sm" onclick="carregarAlertas()">
+              <i class="fa-solid fa-rotate me-1"></i>Atualizar
+            </button>
+          </div>
+
+          <!-- Lista de Alertas -->
+          <div id="listaAlertas" class="d-flex flex-column gap-3 mb-4">
+            <div class="text-center py-4 text-muted">
+              <div class="spinner-border spinner-border-sm text-danger me-2" role="status"></div>
+              Carregando alertas do Supabase...
             </div>
           </div>
 
-        </div>
+          <!-- Histórico Recente -->
+          <hr>
+          <h6 class="fw-bold text-dark mb-2">
+            <i class="fa-solid fa-clock-rotate-left text-danger me-2"></i>Histórico dos Últimos Disparos
+          </h6>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover small" id="tabelaHistorico">
+              <thead>
+                <tr class="table-light">
+                  <th>Horário</th>
+                  <th>Grupo</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="corpoHistorico">
+                <tr><td colspan="3" class="text-center text-muted">Aguardando registros...</td></tr>
+              </tbody>
+            </table>
+          </div>
 
+        </div>
       </div>
+
     </div>
   </div>
 
@@ -217,7 +211,8 @@
         supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
         document.getElementById('badgeConexao').className = 'badge bg-success py-2 px-3';
         document.getElementById('badgeConexao').innerHTML = '<i class="fa-solid fa-cloud me-1"></i> Supabase Conectado';
-        carregarConfiguracoes();
+        carregarAlertas();
+        carregarHistorico();
         escutarMudancas();
       } catch (e) {
         document.getElementById('badgeConexao').className = 'badge bg-danger py-2 px-3';
@@ -225,129 +220,209 @@
       }
     }
 
-    async function carregarConfiguracoes() {
+    async function carregarAlertas() {
       if (!supabaseClient) return;
-      try {
-        const { data, error } = await supabaseClient
-          .from('automacao_config')
-          .select('*')
-          .eq('id', 1)
-          .maybeSingle();
+      const { data, error } = await supabaseClient
+        .from('alertas_agendados')
+        .select('*')
+        .order('criado_em', { ascending: false });
 
-        if (error) {
-          console.warn('Erro ao carregar dados:', error.message);
-          return;
-        }
+      const container = document.getElementById('listaAlertas');
 
-        if (data) {
-          if (data.ativo === true) {
-            document.getElementById('radioSim').checked = true;
-            document.getElementById('msgStatusAux').innerHTML = '<span class="text-success fw-bold"><i class="fa-solid fa-circle-check me-1"></i>Automação ATIVA (SIM)</span> - Enviando a cada 2 horas.';
-          } else {
-            document.getElementById('radioNao').checked = true;
-            document.getElementById('msgStatusAux').innerHTML = '<span class="text-danger fw-bold"><i class="fa-solid fa-circle-xmark me-1"></i>Automação DESATIVADA (NÃO)</span> - Clique em ATIVAR (SIM) para iniciar o ciclo.';
-          }
+      if (error) {
+        container.innerHTML = `
+          <div class="alert alert-warning small mb-0">
+            <strong>Atenção:</strong> A tabela de múltiplos alertas ainda precisa ser criada.<br>
+            Execute o script <code>supabase_schema_multi_alertas.sql</code> no seu Supabase.
+          </div>
+        `;
+        return;
+      }
 
-          if (data.grupo) document.getElementById('grupo').value = data.grupo;
-          if (data.cidade) document.getElementById('cidade').value = data.cidade;
-          if (data.hora_report) document.getElementById('hora_report').value = data.hora_report;
+      if (!data || data.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-4 text-muted bg-light rounded-3">
+            <i class="fa-solid fa-bell-slash fa-2x mb-2 opacity-50"></i>
+            <p class="mb-0">Nenhum alerta cadastrado no momento.</p>
+            <small>Crie um alerta no formulário ao lado para iniciar os envios.</small>
+          </div>
+        `;
+        return;
+      }
 
-          document.getElementById('txtRoboStatus').innerText = data.status_execucao || 'Pronto';
-          if (data.ultimo_disparo) {
-            const dt = new Date(data.ultimo_disparo);
-            document.getElementById('txtUltimoDisparo').innerText = dt.toLocaleString('pt-BR');
-            
-            if (data.ativo) {
-              const prox = new Date(dt.getTime() + 2 * 60 * 60 * 1000);
-              document.getElementById('txtProximoDisparo').innerText = prox.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
-            } else {
-              document.getElementById('txtProximoDisparo').innerText = 'Automação Pausada (NÃO)';
-            }
-          }
-        }
-      } catch (err) {
-        console.error(err);
+      container.innerHTML = '';
+      data.forEach(item => {
+        const isAtivo = item.ativo;
+        const card = document.createElement('div');
+        card.className = `card card-custom card-alerta p-3 ${isAtivo ? '' : 'inativo'}`;
+
+        let statusBadge = isAtivo 
+          ? `<span class="badge bg-success"><i class="fa-solid fa-circle-play me-1"></i>ATIVO (a cada 2h)</span>`
+          : `<span class="badge bg-secondary"><i class="fa-solid fa-circle-stop me-1"></i>DESLIGADO</span>`;
+
+        let botaoToggle = isAtivo
+          ? `<button class="btn btn-outline-danger btn-sm" onclick="alternarStatusAlerta('${item.id}', false)">
+               <i class="fa-solid fa-power-off me-1"></i>Desligar
+             </button>`
+          : `<button class="btn btn-outline-success btn-sm" onclick="alternarStatusAlerta('${item.id}', true)">
+               <i class="fa-solid fa-play me-1"></i>Reativar
+             </button>`;
+
+        let ultimoStr = item.ultimo_disparo ? new Date(item.ultimo_disparo).toLocaleString('pt-BR') : 'Ainda não disparou';
+
+        card.innerHTML = `
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <h6 class="fw-bold text-dark mb-0">${item.grupo}</h6>
+              <span class="small text-muted">Cidade: ${item.cidade || '(TODAS)'} | Hora: ${item.hora_report || '09h'}</span>
+            </div>
+            ${statusBadge}
+          </div>
+          <div class="small text-muted mb-3">
+            <div><strong>Status:</strong> ${item.status_execucao || 'Aguardando'}</div>
+            <div><strong>Último envio:</strong> ${ultimoStr}</div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex gap-2">
+              ${botaoToggle}
+              <button class="btn btn-outline-primary btn-sm" onclick="dispararAlertaAgora('${item.id}')">
+                <i class="fa-solid fa-bolt me-1"></i>Disparar Já
+              </button>
+            </div>
+            <button class="btn btn-link text-danger btn-sm p-0 text-decoration-none" onclick="excluirAlerta('${item.id}')" title="Excluir Alerta">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    async function carregarHistorico() {
+      if (!supabaseClient) return;
+      const { data, error } = await supabaseClient
+        .from('historico_disparos')
+        .select('*')
+        .order('data_disparo', { ascending: false })
+        .limit(8);
+
+      const tbody = document.getElementById('corpoHistorico');
+      if (data && data.length > 0) {
+        tbody.innerHTML = '';
+        data.forEach(h => {
+          const dt = new Date(h.data_disparo).toLocaleTimeString('pt-BR');
+          tbody.innerHTML += `
+            <tr>
+              <td>${dt}</td>
+              <td><strong>${h.grupo}</strong></td>
+              <td><span class="badge ${h.status === 'Sucesso' ? 'bg-success' : 'bg-warning text-dark'}">${h.status}</span></td>
+            </tr>
+          `;
+        });
       }
     }
 
     function escutarMudancas() {
       if (!supabaseClient) return;
       supabaseClient
-        .channel('public:automacao_config')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'automacao_config' }, payload => {
-          carregarConfiguracoes();
+        .channel('public:alertas_agendados')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'alertas_agendados' }, payload => {
+          carregarAlertas();
+          carregarHistorico();
         })
         .subscribe();
     }
 
-    // Clique direto nos rádios SIM / NÃO
-    async function alterarStatusRadio(novoStatus) {
-      if (!supabaseClient) return;
-      const grupo = document.getElementById('grupo').value;
-      const cidade = document.getElementById('cidade').value;
-      const hora = document.getElementById('hora_report').value;
-
-      document.getElementById('msgStatusAux').innerText = 'Gravando no banco...';
-
-      const payload = {
-        ativo: novoStatus,
-        grupo: grupo,
-        cidade: cidade,
-        hora_report: hora,
-        status_execucao: novoStatus ? 'Ativado pelo usuário (aguardando robô local)' : 'Desativado pelo usuário',
-        updated_at: new Date().toISOString()
-      };
-
-      if (novoStatus === true) {
-        payload.disparar_agora = true; // Ao ativar SIM, já ordena o primeiro disparo na hora!
-      }
-
-      await supabaseClient
-        .from('automacao_config')
-        .update(payload)
-        .eq('id', 1);
-
-      carregarConfiguracoes();
-    }
-
-    // Submissão do formulário principal: SALVA, ATIVA e DISPARA AGORA
-    document.getElementById('formControle').addEventListener('submit', async (e) => {
+    // Criar Novo Alerta
+    document.getElementById('formNovoAlerta').addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!supabaseClient) return;
 
-      const btn = document.getElementById('btnSalvar');
+      const btn = document.getElementById('btnCriarAlerta');
       btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando ordem para a máquina local...';
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Registrando no banco...';
 
       const grupo = document.getElementById('grupo').value;
       const cidade = document.getElementById('cidade').value;
       const hora_report = document.getElementById('hora_report').value;
 
-      document.getElementById('radioSim').checked = true;
-
       const { error } = await supabaseClient
-        .from('automacao_config')
-        .update({
-          ativo: true,
-          disparar_agora: true, // Força execução imediata na máquina local!
+        .from('alertas_agendados')
+        .insert([{
           grupo: grupo,
           cidade: cidade,
           hora_report: hora_report,
-          status_execucao: 'Ordem de disparo imediato enviada para a máquina local...',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', 1);
+          intervalo_horas: 2,
+          ativo: true,
+          solicitar_disparo_imediato: true,
+          status_execucao: 'Criado pelo usuário (aguardando envio imediato)'
+        }]);
 
       btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-paper-plane me-2"></i>Salvar Filtros e Disparar Agora (Repete a cada 2h)';
+      btn.innerHTML = '<i class="fa-solid fa-paper-plane me-2"></i>Criar e Ativar Alerta (Ciclo 2h)';
 
       if (!error) {
-        alert('Ordem de envio transmitida com sucesso!\nA máquina local iniciará o disparo agora com o grupo ' + grupo + ' e continuará a cada 2h.');
-        carregarConfiguracoes();
+        alert(`Alerta para '${grupo}' criado com sucesso!\nA máquina local iniciará o disparo e repetirá a cada 2h.`);
+        carregarAlertas();
       } else {
-        alert('Erro ao gravar: ' + error.message);
+        alert('Erro ao criar alerta: ' + error.message);
       }
     });
+
+    // Desligar ou Reativar Alerta
+    async function alternarStatusAlerta(id, novoStatus) {
+      if (!supabaseClient) return;
+      const { error } = await supabaseClient
+        .from('alertas_agendados')
+        .update({
+          ativo: novoStatus,
+          solicitar_disparo_imediato: novoStatus, // se reativar, dispara na hora
+          status_execucao: novoStatus ? 'Reativado (aguardando envio)' : 'Desligado pelo usuário'
+        })
+        .eq('id', id);
+
+      if (!error) {
+        carregarAlertas();
+      } else {
+        alert('Erro: ' + error.message);
+      }
+    }
+
+    // Disparar Alerta Agora
+    async function dispararAlertaAgora(id) {
+      if (!supabaseClient) return;
+      const { error } = await supabaseClient
+        .from('alertas_agendados')
+        .update({
+          ativo: true,
+          solicitar_disparo_imediato: true,
+          status_execucao: 'Solicitado disparo imediato...'
+        })
+        .eq('id', id);
+
+      if (!error) {
+        alert('Ordem de disparo imediato enviada!');
+        carregarAlertas();
+      } else {
+        alert('Erro: ' + error.message);
+      }
+    }
+
+    // Excluir Alerta
+    async function excluirAlerta(id) {
+      if (!confirm('Deseja realmente remover este alerta do banco?')) return;
+      if (!supabaseClient) return;
+      const { error } = await supabaseClient
+        .from('alertas_agendados')
+        .delete()
+        .eq('id', id);
+
+      if (!error) {
+        carregarAlertas();
+      } else {
+        alert('Erro ao excluir: ' + error.message);
+      }
+    }
 
     inicializarSupabase();
   </script>
