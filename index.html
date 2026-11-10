@@ -293,6 +293,16 @@
                <i class="fa-solid fa-play me-1"></i>Reativar
              </button>`;
 
+        const mapaDestinos = {
+          "GRUPO RIO E ES": "5521994003069-1485427833@g.us",
+          "GRUPO MINAS GERAIS": "120363353923537257@g.us",
+          "GRUPO BAHIA/SERGIPE": "557181661088-1608031441@g.us",
+          "GRUPO CENTRO-OESTE": "120363421483823721@g.us",
+          "GRUPO NORDESTE": "557182173522-1452687150@g.us",
+          "GRUPO NORTE": "5521993571609-1617804100@g.us"
+        };
+        const destinoWpp = mapaDestinos[item.grupo] || "5521993571609-1429709216@g.us";
+
         let ultimoStr = item.ultimo_disparo ? new Date(item.ultimo_disparo).toLocaleString('pt-BR') : 'Ainda não disparou';
 
         card.innerHTML = `
@@ -300,6 +310,7 @@
             <div>
               <h6 class="fw-bold text-dark mb-0">${item.grupo}</h6>
               <span class="small text-muted">Cidade: ${item.cidade || '(TODAS)'} | Hora: ${item.hora_report || '09h'}</span>
+              <div class="mt-1"><span class="badge bg-light text-secondary border small" style="font-size: 0.72rem;"><i class="fa-brands fa-whatsapp text-success me-1"></i>Destino: ${destinoWpp}</span></div>
             </div>
             ${statusBadge}
           </div>
