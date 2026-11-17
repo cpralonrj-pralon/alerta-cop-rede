@@ -303,6 +303,20 @@
         };
         const destinoWpp = mapaDestinos[item.grupo] || "5521993571609-1429709216@g.us";
 
+        const deparaRegiaoBI = {
+          "GRUPO RIO E ES": "Rio e ES",
+          "GRUPO MINAS GERAIS": "Minas Gerais",
+          "GRUPO BAHIA/SERGIPE": "Bahia/Sergipe",
+          "GRUPO CENTRO-OESTE": "Centro-Oeste",
+          "GRUPO NORDESTE": "Nordeste",
+          "GRUPO NORTE": "Norte",
+          "GRUPO SP CAPITAL": "SP Capital",
+          "GRUPO SP INTERIOR": "SP Interior",
+          "GRUPO PR": "Paraná",
+          "GRUPO SUL": "Rio Grande do Sul"
+        };
+        const regiaoBI = deparaRegiaoBI[item.grupo] || "-";
+
         let ultimoStr = item.ultimo_disparo ? new Date(item.ultimo_disparo).toLocaleString('pt-BR') : 'Ainda não disparou';
 
         card.innerHTML = `
@@ -310,7 +324,10 @@
             <div>
               <h6 class="fw-bold text-dark mb-0">${item.grupo}</h6>
               <span class="small text-muted">Cidade: ${item.cidade || '(TODAS)'} | Hora: ${item.hora_report || '09h'}</span>
-              <div class="mt-1"><span class="badge bg-light text-secondary border small" style="font-size: 0.72rem;"><i class="fa-brands fa-whatsapp text-success me-1"></i>Destino: ${destinoWpp}</span></div>
+              <div class="mt-1 d-flex flex-wrap gap-1">
+                <span class="badge bg-light text-secondary border small" style="font-size: 0.72rem;"><i class="fa-brands fa-whatsapp text-success me-1"></i>Destino: ${destinoWpp}</span>
+                <span class="badge bg-light text-primary border small" style="font-size: 0.72rem;"><i class="fa-solid fa-chart-column me-1"></i>BI Região: ${regiaoBI}</span>
+              </div>
             </div>
             ${statusBadge}
           </div>
